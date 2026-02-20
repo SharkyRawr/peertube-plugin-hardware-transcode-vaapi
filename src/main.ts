@@ -51,9 +51,6 @@ export async function register({settingsManager, peertubeHelpers, transcodingMan
 
     registerTranscodingProfiles()
 
-    // Load existing settings and default to constants if not present
-    await loadSettings(settingsManager)
-
     registerSetting({
         name: 'hardware-decode',
         label: 'Hardware decode',
@@ -109,8 +106,8 @@ export async function register({settingsManager, peertubeHelpers, transcodingMan
            
         private: true,
     })
-    for (const [resolution, bitrate] of pluginSettings.baseBitrate) {
-        logger.info("registering bitrate setting: "+ bitrate.toString())
+    for (const [resolution, bitrate] of DEFAULT_BITRATES) {
+        logger.info("registering bitrate setting: " + bitrate.toString())
         registerSetting({
             name: `base-bitrate-${resolution}`,
             label: `Base bitrate for ${printResolution(resolution)}`,
@@ -124,8 +121,11 @@ export async function register({settingsManager, peertubeHelpers, transcodingMan
         })
     }
 
+    // Load existing settings and default to constants if not present
+    await loadSettings(settingsManager)
+
     settingsManager.onSettingsChange(async (settings) => {
-        loadSettings(settingsManager)
+        await loadSettings(settingsManager)
     })
 }
 
@@ -136,23 +136,42 @@ export async function unregister() {
 }
 
 async function loadSettings(settingsManager: PluginSettingsManager) {
-    pluginSettings.hardwareDecode = await settingsManager.getSetting('hardware-decode') == "true"
-    pluginSettings.quality = parseInt(await settingsManager.getSetting('quality') as string) || DEFAULT_QUALITY
-    const maxrateMultiplier = parseFloat(await settingsManager.getSetting('maxrate-multiplier') as string)
+    const hardwareDecodeRaw = await getSettingOrDefault(settingsManager, 'hardware-decode', DEFAULT_HARDWARE_DECODE)
+    pluginSettings.hardwareDecode = hardwareDecodeRaw === true || hardwareDecodeRaw === 'true'
+
+    const qualityRaw = await getSettingOrDefault(settingsManager, 'quality', DEFAULT_QUALITY.toString())
+    pluginSettings.quality = parseInt(String(qualityRaw)) || DEFAULT_QUALITY
+
+    const maxrateMultiplierRaw = await getSettingOrDefault(settingsManager, 'maxrate-multiplier', DEFAULT_MAXRATE_MULTIPLIER.toString())
+    const maxrateMultiplier = parseFloat(String(maxrateMultiplierRaw))
     pluginSettings.maxrateMultiplier = Number.isFinite(maxrateMultiplier) && maxrateMultiplier >= 1
         ? maxrateMultiplier
         : DEFAULT_MAXRATE_MULTIPLIER
 
     for (const [resolution, bitrate] of DEFAULT_BITRATES) {
         const key = `base-bitrate-${resolution}`
-        const storedValue = await settingsManager.getSetting(key) as string
-        pluginSettings.baseBitrate.set(resolution, parseInt(storedValue) || bitrate)
+        const storedValue = await getSettingOrDefault(settingsManager, key, bitrate.toString())
+        pluginSettings.baseBitrate.set(resolution, parseInt(String(storedValue)) || bitrate)
         logger.info(`Bitrate ${printResolution(resolution)}: ${pluginSettings.baseBitrate.get(resolution)}`)
     }
 
     logger.info(`Hardware decode: ${pluginSettings.hardwareDecode}`)
     logger.info(`Quality: ${pluginSettings.quality}`)
     logger.info(`VBR maxrate multiplier: ${pluginSettings.maxrateMultiplier}`)
+}
+
+async function getSettingOrDefault(
+    settingsManager: PluginSettingsManager,
+    key: string,
+    defaultValue: string | boolean
+) : Promise<string | boolean> {
+    try {
+        const value = await settingsManager.getSetting(key)
+        return value === undefined || value === null ? defaultValue : value
+    } catch (error) {
+        logger.warn(`Unable to load setting "${key}", using default. ${String(error)}`)
+        return defaultValue
+    }
 }
 
 function printResolution(resolution : VideoResolutionType) : string {
