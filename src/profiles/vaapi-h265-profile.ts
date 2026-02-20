@@ -14,6 +14,7 @@ export class VaapiH265Profile extends VaapiTranscodingProfile {
       `-g:v${streamSuffix} ${fps * 2}`,
       `-keyint_min:v${streamSuffix} ${fps * 2}`,
       `-bf:v${streamSuffix} 2`,
+      `-b:a${streamSuffix} 256k`,
       `-b:v${streamSuffix} ${targetBitrate}`,
       `-maxrate:v${streamSuffix} ${Math.floor(targetBitrate * maxrateMultiplier)}`,
       `-bufsize:v${streamSuffix} ${targetBitrate * 2}`
@@ -29,6 +30,7 @@ export class VaapiH265Profile extends VaapiTranscodingProfile {
       `-g:v${streamSuffix} ${fps * 2}`,
       `-keyint_min:v${streamSuffix} ${fps * 2}`,
       `-bf:v${streamSuffix} 2`,
+      `-b:a${streamSuffix} 256k`,
       `-b:v${streamSuffix} ${targetBitrate}`,
       `-maxrate:v${streamSuffix} ${Math.floor(targetBitrate * maxrateMultiplier)}`,
       `-bufsize:v${streamSuffix} ${targetBitrate * 2}`
