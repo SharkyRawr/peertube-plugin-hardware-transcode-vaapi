@@ -2,6 +2,9 @@ import { PluginSettingsManager, PluginTranscodingManager } from "@peertube/peert
 import { EncoderOptions, EncoderOptionsBuilderParams, RegisterServerOptions, VideoResolution } from "@peertube/peertube-types"
 import type { VideoResolutionType } from "@peertube/peertube-types"
 import { Logger } from 'winston'
+import { VaapiH264Profile } from './profiles/vaapi-h264-profile'
+import { VaapiH265Profile } from './profiles/vaapi-h265-profile'
+import type { TranscodingProfileDefinition } from './profiles/transcoding-profile'
 
 let logger : Logger
 let transcodingManager : PluginTranscodingManager
@@ -32,21 +35,18 @@ let pluginSettings : PluginSettings = {
 
 let latestStreamNum = 9999
 
+const TRANSCODING_PROFILES: TranscodingProfileDefinition[] = [
+    new VaapiH264Profile().getDefinition(),
+    new VaapiH265Profile().getDefinition()
+]
+
 export async function register({settingsManager, peertubeHelpers, transcodingManager: transcode, registerSetting} :RegisterServerOptions) {
     logger = peertubeHelpers.logger
     transcodingManager = transcode
 
     logger.info("Registering peertube-plugin-hardware-encode");
 
-    const encoder = 'h264_vaapi'
-    const profileName = 'vaapi'
-
-    // Add trasncoding profiles
-    transcodingManager.addVODProfile(encoder, profileName, vodBuilder)
-    transcodingManager.addVODEncoderPriority('video', encoder, 1000)
-
-    transcodingManager.addLiveProfile(encoder, profileName, liveBuilder)
-    transcodingManager.addLiveEncoderPriority('video', encoder, 1000)
+    registerTranscodingProfiles()
 
     // Load existing settings and default to constants if not present
     await loadSettings(settingsManager)
@@ -165,73 +165,48 @@ function buildInitOptions() {
     }
 }
 
-async function vodBuilder(params: EncoderOptionsBuilderParams) : Promise<EncoderOptions> {
-    const { resolution, fps, streamNum, inputBitrate } = params
-    const streamSuffix = streamNum == undefined ? '' : `:${streamNum}`
-    let targetBitrate = getTargetBitrate(resolution as VideoResolutionType, fps)
-    let shouldInitVaapi = (streamNum == undefined || streamNum <= latestStreamNum)
+function registerTranscodingProfiles() {
+    for (const profile of TRANSCODING_PROFILES) {
+        transcodingManager.addVODProfile(profile.encoder, profile.profileName, createProfileBuilder(profile.vodOutputOptionsBuilder))
+        transcodingManager.addVODEncoderPriority('video', profile.encoder, profile.priority)
 
-    if (targetBitrate > inputBitrate) {
-        targetBitrate = inputBitrate
+        transcodingManager.addLiveProfile(profile.encoder, profile.profileName, createProfileBuilder(profile.liveOutputOptionsBuilder))
+        transcodingManager.addLiveEncoderPriority('video', profile.encoder, profile.priority)
     }
-
-    logger.info(`Building encoder options, received ${JSON.stringify(params)}`)
-    
-    if (shouldInitVaapi && streamNum != undefined) {
-        latestStreamNum = streamNum
-    }
-    // You can also return a promise
-    let options : EncoderOptions = {
-        scaleFilter: {
-            // software decode requires specifying pixel format for hardware filter and upload it to GPU
-            name: pluginSettings.hardwareDecode ? 'scale_vaapi' : 'format=nv12,hwupload,scale_vaapi'
-        },
-        inputOptions: shouldInitVaapi ? buildInitOptions() : [],
-        outputOptions: [
-            `-quality ${pluginSettings.quality}`,
-            `-b:v${streamSuffix} ${targetBitrate}`,
-            `-bufsize ${targetBitrate * 2}`
-        ]
-    }
-    logger.info(`EncoderOptions: ${JSON.stringify(options)}`)
-    return options 
 }
 
+function createProfileBuilder(outputOptionsBuilder: TranscodingProfileDefinition['vodOutputOptionsBuilder']) {
+    return async (params: EncoderOptionsBuilderParams): Promise<EncoderOptions> => {
+        const { resolution, fps, streamNum, inputBitrate } = params
+        const streamSuffix = streamNum == undefined ? '' : `:${streamNum}`
+        let targetBitrate = getTargetBitrate(resolution as VideoResolutionType, fps)
+        const shouldInitVaapi = (streamNum == undefined || streamNum <= latestStreamNum)
 
-async function liveBuilder(params: EncoderOptionsBuilderParams) : Promise<EncoderOptions> {
-    const { resolution, fps, streamNum, inputBitrate } = params
-    const streamSuffix = streamNum == undefined ? '' : `:${streamNum}`
-    let targetBitrate = getTargetBitrate(resolution as VideoResolutionType, fps)
-    let shouldInitVaapi = (streamNum == undefined || streamNum <= latestStreamNum)
+        if (targetBitrate > inputBitrate) {
+            targetBitrate = inputBitrate
+        }
 
-    if (targetBitrate > inputBitrate) {
-        targetBitrate = inputBitrate
+        logger.info(`Building encoder options, received ${JSON.stringify(params)}`)
+
+        if (shouldInitVaapi && streamNum != undefined) {
+            latestStreamNum = streamNum
+        }
+
+        const options: EncoderOptions = {
+            scaleFilter: {
+                // software decode requires specifying pixel format for hardware filter and upload it to GPU
+                name: pluginSettings.hardwareDecode ? 'scale_vaapi' : 'format=nv12,hwupload,scale_vaapi'
+            },
+            inputOptions: shouldInitVaapi ? buildInitOptions() : [],
+            outputOptions: [
+                `-quality ${pluginSettings.quality}`,
+                ...outputOptionsBuilder(params, targetBitrate, streamSuffix)
+            ]
+        }
+
+        logger.info(`EncoderOptions: ${JSON.stringify(options)}`)
+        return options
     }
-
-    logger.info(`Building encoder options, received ${JSON.stringify(params)}`)
-
-    if (shouldInitVaapi && streamNum != undefined) {
-      latestStreamNum = streamNum
-    }
-
-    // You can also return a promise
-    const options = {
-      scaleFilter: {
-        name: pluginSettings.hardwareDecode ? 'scale_vaapi' : 'format=nv12,hwupload,scale_vaapi'
-      },
-      inputOptions: shouldInitVaapi ? buildInitOptions() : [],
-      outputOptions: [
-        `-quality ${pluginSettings.quality}`,
-        `-r:v${streamSuffix} ${fps}`,
-        `-profile:v${streamSuffix} high`,
-        `-level:v${streamSuffix} 3.1`,
-        `-g:v${streamSuffix} ${fps*2}`,
-        `-b:v${streamSuffix} ${targetBitrate}`,
-        `-bufsize ${targetBitrate * 2}`
-      ]
-    }
-    logger.info(`EncoderOptions: ${JSON.stringify(options)}`)
-    return options
 }
 
 /**
