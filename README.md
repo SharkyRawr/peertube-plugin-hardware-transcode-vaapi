@@ -28,27 +28,13 @@ For more information on vaapi and hardware acceleration:
 - https://wiki.archlinux.org/index.php/Hardware_video_acceleration#Comparison_tables
 
 
-# Building a compatible docker image
+# Docker image
 
-Official docker images do not ship with required libraries for hardware transcode.
-You can build your own image with the following Dockerfile:
+Use the sister Docker image repository, which already includes the required VAAPI dependencies:
 
-```Dockerfile
-ARG VERSION=v4.2.0
-FROM chocobozzz/peertube:${VERSION}-bullseye
+- https://github.com/SharkyRawr/peertube-vaapi
 
-
-# install dependencies for vaapi
-RUN 	   apt update \
-	&& apt install -y --no-install-recommends wget apt-transport-https \
-	&& echo "deb http://deb.debian.org/debian/ $( awk -F'=' '/^VERSION_CODENAME=/{ print $NF }' /etc/os-release ) non-free" | tee /etc/apt/sources.list.d/non-free.list \
-	&& apt update \
-	&& apt install -y --no-install-recommends vainfo i965-va-driver-shaders \
-	&& apt install -y --no-install-recommends python3 \
-	&& rm /var/lib/apt/lists/* -fR
-```
-
-If you are using a recent Intel CPU (generation 8 and newer), replace `i965-va-driver-shaders` by `intel-media-va-driver-non-free`.
+This replaces the old "build your own Dockerfile" workflow from this README.
 
 
 # Running the docker image
@@ -59,15 +45,10 @@ You can use `grep render /etc/group | cut -d':' -f3`  to find the id.
 
 
 ```yaml
-version: "2"
-
 services:
   peertube:
-    # replace image key with
-    build:
-      context: .
-      args:
-        VERSION: v5.0.1
+    # sister image with VAAPI dependencies preinstalled
+    image: ghcr.io/sharkyrawr/peertube-vaapi:production
     # usual peertube configuration
     # ...
 
