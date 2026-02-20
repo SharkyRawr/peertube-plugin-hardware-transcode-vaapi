@@ -20,7 +20,7 @@ const DEFAULT_MAXRATE_MULTIPLIER : number = 1.5
 const DEFAULT_AUDIO_BITRATE : number = 256_000
 const AUDIO_PROFILE = {
     encoder: 'aac',
-    profileName: 'Lunacode AAC',
+    profileName: 'Lunacode AAC (audio-only)',
     priority: 1000
 } as const
 const VIDEO_RESOLUTION = {
