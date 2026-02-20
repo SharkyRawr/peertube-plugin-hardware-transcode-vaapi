@@ -49,8 +49,6 @@ export async function register({settingsManager, peertubeHelpers, transcodingMan
 
     logger.info("Registering peertube-plugin-hardware-encode");
 
-    registerTranscodingProfiles()
-
     registerSetting({
         name: 'hardware-decode',
         label: 'Hardware decode',
@@ -124,9 +122,15 @@ export async function register({settingsManager, peertubeHelpers, transcodingMan
     // Load existing settings and default to constants if not present
     await loadSettings(settingsManager)
 
-    settingsManager.onSettingsChange(async (settings) => {
+    settingsManager.onSettingsChange(async (_settings) => {
         await loadSettings(settingsManager)
     })
+
+    try {
+        registerTranscodingProfiles()
+    } catch (error) {
+        logger.error(`Unable to register VAAPI transcoding profiles: ${String(error)}`)
+    }
 }
 
 export async function unregister() {
