@@ -8,7 +8,6 @@ export class VaapiH264Profile extends VaapiTranscodingProfile {
 
   protected buildVodOutputOptions(_params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string, maxrateMultiplier: number): string[] {
     return [
-      `-b:a${streamSuffix} 256k`,
       `-b:v${streamSuffix} ${targetBitrate}`,
       `-maxrate:v${streamSuffix} ${Math.floor(targetBitrate * maxrateMultiplier)}`,
       `-bufsize:v${streamSuffix} ${targetBitrate * 2}`
@@ -23,7 +22,6 @@ export class VaapiH264Profile extends VaapiTranscodingProfile {
       `-profile:v${streamSuffix} high`,
       `-level:v${streamSuffix} 3.1`,
       `-g:v${streamSuffix} ${fps * 2}`,
-      `-b:a${streamSuffix} 256k`,
       `-b:v${streamSuffix} ${targetBitrate}`,
       `-maxrate:v${streamSuffix} ${Math.floor(targetBitrate * maxrateMultiplier)}`,
       `-bufsize:v${streamSuffix} ${targetBitrate * 2}`

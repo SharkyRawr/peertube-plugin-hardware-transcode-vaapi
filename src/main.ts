@@ -17,6 +17,12 @@ let transcodingManager : PluginTranscodingManager
 const DEFAULT_HARDWARE_DECODE : boolean = false
 const DEFAULT_QUALITY : number = -1
 const DEFAULT_MAXRATE_MULTIPLIER : number = 1.5
+const AUDIO_BITRATE = '256k'
+const AUDIO_PROFILE = {
+    encoder: 'aac',
+    profileName: 'Lunacode AAC 256k',
+    priority: 1000
+} as const
 const VIDEO_RESOLUTION = {
     H_NOVIDEO: 0,
     H_144P: 144,
@@ -231,6 +237,13 @@ function registerTranscodingProfiles() {
         transcodingManager.addLiveProfile(profile.encoder, profile.profileName, createProfileBuilder(profile.liveOutputOptionsBuilder))
         transcodingManager.addLiveEncoderPriority('video', profile.encoder, profile.priority)
     }
+
+    const audioProfileBuilder = createAudioProfileBuilder()
+    transcodingManager.addVODProfile(AUDIO_PROFILE.encoder, AUDIO_PROFILE.profileName, audioProfileBuilder)
+    transcodingManager.addVODEncoderPriority('audio', AUDIO_PROFILE.encoder, AUDIO_PROFILE.priority)
+
+    transcodingManager.addLiveProfile(AUDIO_PROFILE.encoder, AUDIO_PROFILE.profileName, audioProfileBuilder)
+    transcodingManager.addLiveEncoderPriority('audio', AUDIO_PROFILE.encoder, AUDIO_PROFILE.priority)
 }
 
 function createProfileBuilder(outputOptionsBuilder: TranscodingProfileDefinition['vodOutputOptionsBuilder']) {
@@ -264,6 +277,16 @@ function createProfileBuilder(outputOptionsBuilder: TranscodingProfileDefinition
 
         logger.info(`EncoderOptions: ${JSON.stringify(options)}`)
         return options
+    }
+}
+
+function createAudioProfileBuilder() {
+    return async (_params: EncoderOptionsBuilderParams): Promise<EncoderOptions> => {
+        return {
+            outputOptions: [
+                `-b:a ${AUDIO_BITRATE}`
+            ]
+        }
     }
 }
 
