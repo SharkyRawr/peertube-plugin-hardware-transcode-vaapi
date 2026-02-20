@@ -17,10 +17,10 @@ let transcodingManager : PluginTranscodingManager
 const DEFAULT_HARDWARE_DECODE : boolean = false
 const DEFAULT_QUALITY : number = -1
 const DEFAULT_MAXRATE_MULTIPLIER : number = 1.5
-const AUDIO_BITRATE = '256k'
+const DEFAULT_AUDIO_BITRATE : number = 256_000
 const AUDIO_PROFILE = {
     encoder: 'aac',
-    profileName: 'Lunacode AAC 256k',
+    profileName: 'Lunacode AAC',
     priority: 1000
 } as const
 const VIDEO_RESOLUTION = {
@@ -48,12 +48,14 @@ interface PluginSettings {
     hardwareDecode : boolean
     quality: number
     maxrateMultiplier: number
+    audioBitrate: number
     baseBitrate: Map<VideoResolutionType, number>
 }
 let pluginSettings : PluginSettings = {
     hardwareDecode: DEFAULT_HARDWARE_DECODE,
     quality: DEFAULT_QUALITY,
     maxrateMultiplier: DEFAULT_MAXRATE_MULTIPLIER,
+    audioBitrate: DEFAULT_AUDIO_BITRATE,
     baseBitrate: new Map(DEFAULT_BITRATES)
 }
 
@@ -112,6 +114,17 @@ export async function register({settingsManager, peertubeHelpers, transcodingMan
         descriptionHTML: 'Multiplier applied to target bitrate to set FFmpeg maxrate for constrained VBR. For example, 1.5 means maxrate is 150% of target bitrate. Values lower than 1 are ignored and replaced by the default.',
 
         default: DEFAULT_MAXRATE_MULTIPLIER.toString(),
+        private: false
+    })
+    registerSetting({
+        name: 'audio-bitrate',
+        label: 'Audio bitrate',
+
+        type: 'input',
+
+        descriptionHTML: 'Audio bitrate in bits per second. Default is 256000 (256k). Invalid or non-positive values are replaced by default.',
+
+        default: DEFAULT_AUDIO_BITRATE.toString(),
         private: false
     })
 
@@ -173,6 +186,12 @@ async function loadSettings(settingsManager: PluginSettingsManager) {
         ? maxrateMultiplier
         : DEFAULT_MAXRATE_MULTIPLIER
 
+    const audioBitrateRaw = await getSettingOrDefault(settingsManager, 'audio-bitrate', DEFAULT_AUDIO_BITRATE.toString())
+    const audioBitrate = parseInt(String(audioBitrateRaw))
+    pluginSettings.audioBitrate = Number.isFinite(audioBitrate) && audioBitrate > 0
+        ? audioBitrate
+        : DEFAULT_AUDIO_BITRATE
+
     for (const [resolution, bitrate] of DEFAULT_BITRATES) {
         const key = `base-bitrate-${resolution}`
         const storedValue = await getSettingOrDefault(settingsManager, key, bitrate.toString())
@@ -183,6 +202,7 @@ async function loadSettings(settingsManager: PluginSettingsManager) {
     logger.info(`Hardware decode: ${pluginSettings.hardwareDecode}`)
     logger.info(`Quality: ${pluginSettings.quality}`)
     logger.info(`VBR maxrate multiplier: ${pluginSettings.maxrateMultiplier}`)
+    logger.info(`Audio bitrate: ${pluginSettings.audioBitrate}`)
 }
 
 async function getSettingOrDefault(
@@ -284,7 +304,7 @@ function createAudioProfileBuilder() {
     return async (_params: EncoderOptionsBuilderParams): Promise<EncoderOptions> => {
         return {
             outputOptions: [
-                `-b:a ${AUDIO_BITRATE}`
+                `-b:a ${pluginSettings.audioBitrate}`
             ]
         }
     }
