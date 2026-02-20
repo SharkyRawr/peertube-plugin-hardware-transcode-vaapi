@@ -1,7 +1,7 @@
 {
     "extends": "@tsconfig/node16/tsconfig.json",
     "compilerOptions": {
-          "moduleResolution": "node", // Tell tsc to look in node_modules for modules
+          "moduleResolution": "node16", // Tell tsc to look in node_modules for modules
           "strict": true, // That implies alwaysStrict, noImplicitAny, noImplicitThis
   
           "alwaysStrict": true, // should already be true because of strict:true
@@ -15,7 +15,8 @@
           "sourceMap": true,
   
           "outDir": "../dist/",
-          "paths": {}
+          "paths": {},
+          "lib": ["es2015"]
       },
       "include": [
           "./**/*"

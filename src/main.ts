@@ -1,5 +1,6 @@
 import { PluginSettingsManager, PluginTranscodingManager } from "@peertube/peertube-types"
 import { EncoderOptions, EncoderOptionsBuilderParams, RegisterServerOptions, VideoResolution } from "@peertube/peertube-types"
+import type { VideoResolutionType } from "@peertube/peertube-types"
 import { Logger } from 'winston'
 
 let logger : Logger
@@ -7,7 +8,7 @@ let transcodingManager : PluginTranscodingManager
 
 const DEFAULT_HARDWARE_DECODE : boolean = false
 const DEFAULT_QUALITY : number = -1
-const DEFAULT_BITRATES : Map<VideoResolution, number> = new Map([
+const DEFAULT_BITRATES : Map<VideoResolutionType, number> = new Map([
     [VideoResolution.H_NOVIDEO, 64 * 1000],
     [VideoResolution.H_144P, 320 * 1000],
     [VideoResolution.H_360P, 780 * 1000],
@@ -21,7 +22,7 @@ const DEFAULT_BITRATES : Map<VideoResolution, number> = new Map([
 interface PluginSettings {
     hardwareDecode : boolean
     quality: number
-    baseBitrate: Map<VideoResolution, number>
+    baseBitrate: Map<VideoResolutionType, number>
 }
 let pluginSettings : PluginSettings = {
     hardwareDecode: DEFAULT_HARDWARE_DECODE,
@@ -134,7 +135,7 @@ async function loadSettings(settingsManager: PluginSettingsManager) {
     logger.info(`Quality: ${pluginSettings.quality}`)
 }
 
-function printResolution(resolution : VideoResolution) : string {
+function printResolution(resolution : VideoResolutionType) : string {
     switch (resolution) {
         case VideoResolution.H_NOVIDEO: return 'audio only'
         case VideoResolution.H_144P:
@@ -167,7 +168,7 @@ function buildInitOptions() {
 async function vodBuilder(params: EncoderOptionsBuilderParams) : Promise<EncoderOptions> {
     const { resolution, fps, streamNum, inputBitrate } = params
     const streamSuffix = streamNum == undefined ? '' : `:${streamNum}`
-    let targetBitrate = getTargetBitrate(resolution, fps)
+    let targetBitrate = getTargetBitrate(resolution as VideoResolutionType, fps)
     let shouldInitVaapi = (streamNum == undefined || streamNum <= latestStreamNum)
 
     if (targetBitrate > inputBitrate) {
@@ -200,7 +201,7 @@ async function vodBuilder(params: EncoderOptionsBuilderParams) : Promise<Encoder
 async function liveBuilder(params: EncoderOptionsBuilderParams) : Promise<EncoderOptions> {
     const { resolution, fps, streamNum, inputBitrate } = params
     const streamSuffix = streamNum == undefined ? '' : `:${streamNum}`
-    let targetBitrate = getTargetBitrate(resolution, fps)
+    let targetBitrate = getTargetBitrate(resolution as VideoResolutionType, fps)
     let shouldInitVaapi = (streamNum == undefined || streamNum <= latestStreamNum)
 
     if (targetBitrate > inputBitrate) {
@@ -242,7 +243,7 @@ async function liveBuilder(params: EncoderOptionsBuilderParams) : Promise<Encode
  * getBaseBitrate() * 1.4. All other values are calculated linearly
  * between these two points.
  */
-function getTargetBitrate (resolution : VideoResolution, fps : number) : number {
+function getTargetBitrate (resolution : VideoResolutionType, fps : number) : number {
     const baseBitrate = pluginSettings.baseBitrate.get(resolution) || 0
     // The maximum bitrate, used when fps === VideoTranscodingFPS.MAX
     // Based on numbers from Youtube, 60 fps bitrate divided by 30 fps bitrate:
