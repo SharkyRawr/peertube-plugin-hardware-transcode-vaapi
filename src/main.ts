@@ -11,6 +11,7 @@ let transcodingManager : PluginTranscodingManager
 
 const DEFAULT_HARDWARE_DECODE : boolean = false
 const DEFAULT_QUALITY : number = -1
+const DEFAULT_MAXRATE_MULTIPLIER : number = 1.5
 const DEFAULT_BITRATES : Map<VideoResolutionType, number> = new Map([
     [VideoResolution.H_NOVIDEO, 64 * 1000],
     [VideoResolution.H_144P, 320 * 1000],
@@ -25,11 +26,13 @@ const DEFAULT_BITRATES : Map<VideoResolutionType, number> = new Map([
 interface PluginSettings {
     hardwareDecode : boolean
     quality: number
+    maxrateMultiplier: number
     baseBitrate: Map<VideoResolutionType, number>
 }
 let pluginSettings : PluginSettings = {
     hardwareDecode: DEFAULT_HARDWARE_DECODE,
     quality: DEFAULT_QUALITY,
+    maxrateMultiplier: DEFAULT_MAXRATE_MULTIPLIER,
     baseBitrate: new Map(DEFAULT_BITRATES)
 }
 
@@ -85,6 +88,18 @@ export async function register({settingsManager, peertubeHelpers, transcodingMan
     })
 
     registerSetting({
+        name: 'maxrate-multiplier',
+        label: 'VBR maxrate multiplier',
+
+        type: 'input',
+
+        descriptionHTML: 'Multiplier applied to target bitrate to set FFmpeg maxrate for constrained VBR. For example, 1.5 means maxrate is 150% of target bitrate. Values lower than 1 are ignored and replaced by the default.',
+
+        default: DEFAULT_MAXRATE_MULTIPLIER.toString(),
+        private: false
+    })
+
+    registerSetting({
         name: 'base-bitrate-description',
         label: 'Base bitrate',
 
@@ -123,6 +138,10 @@ export async function unregister() {
 async function loadSettings(settingsManager: PluginSettingsManager) {
     pluginSettings.hardwareDecode = await settingsManager.getSetting('hardware-decode') == "true"
     pluginSettings.quality = parseInt(await settingsManager.getSetting('quality') as string) || DEFAULT_QUALITY
+    const maxrateMultiplier = parseFloat(await settingsManager.getSetting('maxrate-multiplier') as string)
+    pluginSettings.maxrateMultiplier = Number.isFinite(maxrateMultiplier) && maxrateMultiplier >= 1
+        ? maxrateMultiplier
+        : DEFAULT_MAXRATE_MULTIPLIER
 
     for (const [resolution, bitrate] of DEFAULT_BITRATES) {
         const key = `base-bitrate-${resolution}`
@@ -133,6 +152,7 @@ async function loadSettings(settingsManager: PluginSettingsManager) {
 
     logger.info(`Hardware decode: ${pluginSettings.hardwareDecode}`)
     logger.info(`Quality: ${pluginSettings.quality}`)
+    logger.info(`VBR maxrate multiplier: ${pluginSettings.maxrateMultiplier}`)
 }
 
 function printResolution(resolution : VideoResolutionType) : string {
@@ -200,7 +220,7 @@ function createProfileBuilder(outputOptionsBuilder: TranscodingProfileDefinition
             inputOptions: shouldInitVaapi ? buildInitOptions() : [],
             outputOptions: [
                 `-quality ${pluginSettings.quality}`,
-                ...outputOptionsBuilder(params, targetBitrate, streamSuffix)
+                ...outputOptionsBuilder(params, targetBitrate, streamSuffix, pluginSettings.maxrateMultiplier)
             ]
         }
 

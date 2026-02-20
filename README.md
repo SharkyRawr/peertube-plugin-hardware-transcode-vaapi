@@ -1,6 +1,25 @@
-# Hardware h264 encoding using vaapi
+# Hardware transcoding using VAAPI
 
-This plugin tries to enable hardware accelerated transcoding profiles using vaapi on linux. It should be considered experimental and tinkering will certainly be necessary to make this plugin work on your hardware.
+This plugin enables hardware-accelerated transcoding profiles using VAAPI on Linux. It should be considered experimental and some tuning may be required for your hardware.
+
+## Profiles and bitrate control
+
+The plugin registers two video encoder profiles:
+
+- `VAAPI H264` (`h264_vaapi`)
+- `VAAPI H265` (`hevc_vaapi`)
+
+Both profiles use constrained variable bitrate (VBR):
+
+- target bitrate is set with `-b:v`
+- peak bitrate is capped with `-maxrate:v`
+- VBV buffer is set with `-bufsize:v`
+
+You can tune VBR burst behavior with plugin setting `VBR maxrate multiplier`.
+For example, `1.5` means maxrate is 150% of the target bitrate.
+
+Migration note: the old profile label `vaapi` was renamed to `VAAPI H264`.
+If you previously selected `vaapi` explicitly, review profile selection after upgrading.
 
 
 For more information on vaapi and hardware acceleration:

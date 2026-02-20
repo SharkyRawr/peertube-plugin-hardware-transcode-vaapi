@@ -1,6 +1,6 @@
 import { EncoderOptionsBuilderParams } from '@peertube/peertube-types'
 
-export type EncoderOutputOptionsBuilder = (params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string) => string[]
+export type EncoderOutputOptionsBuilder = (params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string, maxrateMultiplier: number) => string[]
 
 export interface TranscodingProfileDefinition {
   encoder: string
@@ -25,6 +25,6 @@ export abstract class VaapiTranscodingProfile {
     }
   }
 
-  protected abstract buildVodOutputOptions(params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string): string[]
-  protected abstract buildLiveOutputOptions(params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string): string[]
+  protected abstract buildVodOutputOptions(params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string, maxrateMultiplier: number): string[]
+  protected abstract buildLiveOutputOptions(params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string, maxrateMultiplier: number): string[]
 }

@@ -6,7 +6,7 @@ export class VaapiH265Profile extends VaapiTranscodingProfile {
   protected profileName = 'VAAPI H265'
   protected priority = 900
 
-  protected buildVodOutputOptions(params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string): string[] {
+  protected buildVodOutputOptions(params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string, maxrateMultiplier: number): string[] {
     const { fps } = params
 
     return [
@@ -15,12 +15,12 @@ export class VaapiH265Profile extends VaapiTranscodingProfile {
       `-keyint_min:v${streamSuffix} ${fps * 2}`,
       `-bf:v${streamSuffix} 2`,
       `-b:v${streamSuffix} ${targetBitrate}`,
-      `-maxrate:v${streamSuffix} ${Math.floor(targetBitrate * 1.5)}`,
+      `-maxrate:v${streamSuffix} ${Math.floor(targetBitrate * maxrateMultiplier)}`,
       `-bufsize:v${streamSuffix} ${targetBitrate * 2}`
     ]
   }
 
-  protected buildLiveOutputOptions(params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string): string[] {
+  protected buildLiveOutputOptions(params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string, maxrateMultiplier: number): string[] {
     const { fps } = params
 
     return [
@@ -30,7 +30,7 @@ export class VaapiH265Profile extends VaapiTranscodingProfile {
       `-keyint_min:v${streamSuffix} ${fps * 2}`,
       `-bf:v${streamSuffix} 2`,
       `-b:v${streamSuffix} ${targetBitrate}`,
-      `-maxrate:v${streamSuffix} ${Math.floor(targetBitrate * 1.5)}`,
+      `-maxrate:v${streamSuffix} ${Math.floor(targetBitrate * maxrateMultiplier)}`,
       `-bufsize:v${streamSuffix} ${targetBitrate * 2}`
     ]
   }
