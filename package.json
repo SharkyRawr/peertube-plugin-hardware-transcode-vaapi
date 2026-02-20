@@ -1,6 +1,6 @@
 {
     "name": "peertube-plugin-lunacode-vaapi",
-    "version": "0.3.2",
+    "version": "0.3.3",
     "license": "MIT",
     "description": "Plugin that adds transcode profiles which use vaapi for hardware acceleration",
     "engine": {

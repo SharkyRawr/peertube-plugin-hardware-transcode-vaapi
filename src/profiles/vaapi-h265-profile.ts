@@ -1,4 +1,4 @@
-import { EncoderOptionsBuilderParams } from '@peertube/peertube-types'
+import type { EncoderOptionsBuilderParams } from '@peertube/peertube-types'
 import { VaapiTranscodingProfile } from './transcoding-profile'
 
 export class VaapiH265Profile extends VaapiTranscodingProfile {

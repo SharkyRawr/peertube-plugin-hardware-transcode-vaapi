@@ -1,4 +1,4 @@
-import { EncoderOptionsBuilderParams } from '@peertube/peertube-types'
+import type { EncoderOptionsBuilderParams } from '@peertube/peertube-types'
 
 export type EncoderOutputOptionsBuilder = (params: EncoderOptionsBuilderParams, targetBitrate: number, streamSuffix: string, maxrateMultiplier: number) => string[]
 

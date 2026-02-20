@@ -1,6 +1,11 @@
-import { PluginSettingsManager, PluginTranscodingManager } from "@peertube/peertube-types"
-import { EncoderOptions, EncoderOptionsBuilderParams, RegisterServerOptions, VideoResolution } from "@peertube/peertube-types"
-import type { VideoResolutionType } from "@peertube/peertube-types"
+import type {
+    EncoderOptions,
+    EncoderOptionsBuilderParams,
+    PluginSettingsManager,
+    PluginTranscodingManager,
+    RegisterServerOptions,
+    VideoResolutionType
+} from "@peertube/peertube-types"
 import { Logger } from 'winston'
 import { VaapiH264Profile } from './profiles/vaapi-h264-profile'
 import { VaapiH265Profile } from './profiles/vaapi-h265-profile'
@@ -12,15 +17,25 @@ let transcodingManager : PluginTranscodingManager
 const DEFAULT_HARDWARE_DECODE : boolean = false
 const DEFAULT_QUALITY : number = -1
 const DEFAULT_MAXRATE_MULTIPLIER : number = 1.5
+const VIDEO_RESOLUTION = {
+    H_NOVIDEO: 0,
+    H_144P: 144,
+    H_360P: 360,
+    H_480P: 480,
+    H_720P: 720,
+    H_1080P: 1080,
+    H_1440P: 1440,
+    H_4K: 2160
+} as const
 const DEFAULT_BITRATES : Map<VideoResolutionType, number> = new Map([
-    [VideoResolution.H_NOVIDEO, 64 * 1000],
-    [VideoResolution.H_144P, 320 * 1000],
-    [VideoResolution.H_360P, 780 * 1000],
-    [VideoResolution.H_480P, 1500 * 1000],
-    [VideoResolution.H_720P, 2800 * 1000],
-    [VideoResolution.H_1080P, 5200 * 1000],
-    [VideoResolution.H_1440P, 10_000 * 1000],
-    [VideoResolution.H_4K, 22_000 * 1000]
+    [VIDEO_RESOLUTION.H_NOVIDEO, 64 * 1000],
+    [VIDEO_RESOLUTION.H_144P, 320 * 1000],
+    [VIDEO_RESOLUTION.H_360P, 780 * 1000],
+    [VIDEO_RESOLUTION.H_480P, 1500 * 1000],
+    [VIDEO_RESOLUTION.H_720P, 2800 * 1000],
+    [VIDEO_RESOLUTION.H_1080P, 5200 * 1000],
+    [VIDEO_RESOLUTION.H_1440P, 10_000 * 1000],
+    [VIDEO_RESOLUTION.H_4K, 22_000 * 1000]
 ])
 
 interface PluginSettings {
@@ -180,15 +195,15 @@ async function getSettingOrDefault(
 
 function printResolution(resolution : VideoResolutionType) : string {
     switch (resolution) {
-        case VideoResolution.H_NOVIDEO: return 'audio only'
-        case VideoResolution.H_144P:
-        case VideoResolution.H_360P:
-        case VideoResolution.H_480P:
-        case VideoResolution.H_720P:
-        case VideoResolution.H_1080P:
-        case VideoResolution.H_1440P:
+        case VIDEO_RESOLUTION.H_NOVIDEO: return 'audio only'
+        case VIDEO_RESOLUTION.H_144P:
+        case VIDEO_RESOLUTION.H_360P:
+        case VIDEO_RESOLUTION.H_480P:
+        case VIDEO_RESOLUTION.H_720P:
+        case VIDEO_RESOLUTION.H_1080P:
+        case VIDEO_RESOLUTION.H_1440P:
             return `${resolution}p`
-        case VideoResolution.H_4K: return '4K'
+        case VIDEO_RESOLUTION.H_4K: return '4K'
 
         default: return 'Unknown'
     }
