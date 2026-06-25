@@ -26,6 +26,7 @@ const AUDIO_PROFILE = {
 const VIDEO_RESOLUTION = {
     H_NOVIDEO: 0,
     H_144P: 144,
+    H_240P: 240,
     H_360P: 360,
     H_480P: 480,
     H_720P: 720,
@@ -36,6 +37,7 @@ const VIDEO_RESOLUTION = {
 const DEFAULT_BITRATES : Map<VideoResolutionType, number> = new Map([
     [VIDEO_RESOLUTION.H_NOVIDEO, 64 * 1000],
     [VIDEO_RESOLUTION.H_144P, 320 * 1000],
+    [VIDEO_RESOLUTION.H_240P, 520 * 1000],
     [VIDEO_RESOLUTION.H_360P, 780 * 1000],
     [VIDEO_RESOLUTION.H_480P, 1500 * 1000],
     [VIDEO_RESOLUTION.H_720P, 2800 * 1000],
@@ -223,6 +225,7 @@ function printResolution(resolution : VideoResolutionType) : string {
     switch (resolution) {
         case VIDEO_RESOLUTION.H_NOVIDEO: return 'audio only'
         case VIDEO_RESOLUTION.H_144P:
+        case VIDEO_RESOLUTION.H_240P:
         case VIDEO_RESOLUTION.H_360P:
         case VIDEO_RESOLUTION.H_480P:
         case VIDEO_RESOLUTION.H_720P:
